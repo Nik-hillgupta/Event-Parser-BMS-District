@@ -6,7 +6,7 @@ import re
 from io import BytesIO
 import xlsxwriter
 
-# Keyword-based category inference for District and AllEvents
+# Infer category for sources that don't have native tags (District, AllEvents)
 def infer_category(text):
     text = text.lower()
     if any(kw in text for kw in ["comedy", "standup", "comic"]): return "Comedy"
@@ -34,11 +34,14 @@ def parse_bookmyshow(html_text, city):
 
             img_tag = card.find('img')
             img_url = img_tag['src'] if img_tag else ''
-            match = re.search(r'ie-([A-Za-z0-9%]+)', img_url)
             date_text = ''
+
+            # Improved base64 regex
+            match = re.search(r'ie-([A-Za-z0-9%]+)', img_url)
             if match:
                 try:
-                    date_text = base64.b64decode(match.group(1)).decode('utf-8')
+                    b64_str = match.group(1)
+                    date_text = base64.b64decode(b64_str).decode('utf-8')
                 except Exception:
                     pass
 
@@ -56,6 +59,7 @@ def parse_bookmyshow(html_text, city):
             })
         except Exception:
             continue
+
     return pd.DataFrame(events)
 
 def parse_district(html_text, city):
@@ -100,7 +104,7 @@ def parse_allevents(html_text, city):
             date = card.find('div', class_='date').text.strip()
             price_div = card.find('div', class_='price')
             price = price_div.text.strip() if price_div else 'Free'
-            link = card['data-link']
+            link = card.get('data-link', '')
             category = infer_category(event_name + ' ' + venue)
 
             events.append({
@@ -138,8 +142,10 @@ def remove_duplicates(df):
 
     return deduped.drop(columns='dedup_key')
 
+# Streamlit UI
 st.set_page_config(page_title="Pixie Super Parser", layout="wide")
 st.title("📦 Pixie Super Parser")
+st.markdown("Parse BookMyShow, District, and AllEvents HTML dumps into clean structured Excel.")
 
 if 'files_to_parse' not in st.session_state:
     st.session_state.files_to_parse = []
