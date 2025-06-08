@@ -19,7 +19,6 @@ def infer_category(text):
     if any(kw in text for kw in ["spiritual", "meditation", "yoga"]): return "Spirituality"
     return "Other"
 
-
 def parse_bookmyshow(html_text, city):
     soup = BeautifulSoup(html_text, 'html.parser')
     cards = soup.select('a.sc-133848s-11')
@@ -59,7 +58,6 @@ def parse_bookmyshow(html_text, city):
             continue
     return pd.DataFrame(events)
 
-
 def parse_district(html_text, city):
     soup = BeautifulSoup(html_text, 'html.parser')
     cards = soup.select('a.dds-h-full')
@@ -89,7 +87,6 @@ def parse_district(html_text, city):
         except Exception:
             continue
     return pd.DataFrame(events)
-
 
 def parse_allevents(html_text, city):
     soup = BeautifulSoup(html_text, 'html.parser')
@@ -122,8 +119,10 @@ def parse_allevents(html_text, city):
             continue
     return pd.DataFrame(events)
 
-
 def remove_duplicates(df):
+    if 'Event Name' not in df.columns or 'Venue' not in df.columns:
+        return df
+
     df['dedup_key'] = df['Event Name'].str.lower().str.strip() + df['Venue'].str.lower().str.strip()
     deduped = df.drop_duplicates(subset='dedup_key', keep='first')
     dupes = df[df.duplicated('dedup_key', keep='first')]
@@ -139,11 +138,9 @@ def remove_duplicates(df):
 
     return deduped.drop(columns='dedup_key')
 
-
 st.set_page_config(page_title="Pixie Super Parser", layout="wide")
 st.title("📦 Pixie Super Parser")
 
-uploaded_files = []
 if 'files_to_parse' not in st.session_state:
     st.session_state.files_to_parse = []
 
@@ -167,11 +164,8 @@ for i, f in enumerate(st.session_state.files_to_parse):
     st.write(f"{i+1}. {f['source']} | {f['city']} | {f['filename']}")
 
 if st.button("🔍 Run Parser"):
-    parsed_data = {
-        'BookMyShow': [],
-        'District': [],
-        'AllEvents': []
-    }
+    parsed_data = {'BookMyShow': [], 'District': [], 'AllEvents': []}
+
     for entry in st.session_state.files_to_parse:
         file_text = entry['file'].read().decode('utf-8')
         source = entry['source']
@@ -215,4 +209,5 @@ if st.button("🔍 Run Parser"):
         district_df.to_excel(writer, index=False, sheet_name="District")
         ae_df.to_excel(writer, index=False, sheet_name="AllEvents")
         final_df.to_excel(writer, index=False, sheet_name="Consolidated")
+
     st.download_button("⬇️ Download All as Excel", data=output.getvalue(), file_name="pixie_events.xlsx")
