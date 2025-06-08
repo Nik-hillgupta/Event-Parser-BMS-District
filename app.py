@@ -37,14 +37,13 @@ def parse_bookmyshow(html_text, city):
             date_text = ''
 
             # Improved base64 regex
-            match = re.search(r'ie-([A-Za-z0-9%]+)', img_url)
-            if match:
-                try:
-                    b64_str = match.group(1)
-                    date_text = base64.b64decode(b64_str).decode('utf-8')
-                except Exception:
-                    pass
-
+          match = re.search(r'ie-([A-Za-z0-9%]+)', img_url)
+date_text = ''
+if match:
+    try:
+        date_text = base64.b64decode(match.group(1)).decode('utf-8')
+    except Exception:
+        pass
             events.append({
                 'City': city,
                 'Event Name': event_name,
